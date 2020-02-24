@@ -1,0 +1,67 @@
+server:
+  port: ${PORT}
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: cameleip-${ENV}
+
+camel:
+  springboot:
+    name: cameleip-${ENV}
+#  component:
+#    micrometer:
+#      enabled: true
+#      metrics-registry: io.micrometer.prometheus.PrometheusMeterRegistry
+
+management:
+  endpoint:
+    health.show-details: always
+    camelroutes.enabled: true
+    camelroutes.read-only: true
+  info.camel.enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: ["health","info", "metrics", "prometheus"]
+
+application:
+  routeConfigs:
+    - name: expenseFileProcessingRoute
+      enabled: true
+      autoStartup: true
+      inputEndpoints:
+        - 'file:${EXPENSES_FILE}?charset=UTF-8&maxMessagesPerPoll=10'
+      outputEndpoints:
+        - 'direct:aggregateRoutes'
+      executorConfig:
+        name: expenseProcessorThreadPool
+        size: 1
+        maxSize: 1
+        queueSize: -1
+      customProperties:
+        - key: 'batchSize'
+          value: '100'
+
+    - name: incomeFileProcessingRoute
+      enabled: true
+      autoStartup: true
+      inputEndpoints:
+        - 'file:${INCOME_FILE}?charset=UTF-8&maxMessagesPerPoll=10'
+      outputEndpoints:
+        - 'direct:aggregateRoutes'
+      executorConfig:
+        name: incomeProcessorThreadPool
+        size: 1
+        maxSize: 1
+        queueSize: -1
+      customProperties:
+        - key: 'batchSize'
+          value: '100'
+
+    - name: aggregateRoutes
+      enabled: true
+      autoStartup: true
+      inputEndpoints:
+        - 'direct:aggregateRoutes'
